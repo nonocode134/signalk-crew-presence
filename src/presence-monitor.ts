@@ -42,15 +42,22 @@ export class PresenceMonitor extends EventEmitter {
 
     // Build presence state keyed by MAC for fast lookup
     this.presenceState.clear();
+    const now = Date.now();
+    const timeoutMs = config.alarmTimeoutSeconds * 1000;
     for (const member of config.crewMembers) {
       const mac = member.macAddress.toLowerCase();
       const device = this.detectedDevices.get(mac);
+      const present = device !== undefined && (now - device.lastSeen) <= timeoutMs;
       this.presenceState.set(mac, {
         member,
-        present: device !== undefined,
+        present,
         lastSeen: device?.lastSeen ?? null,
         alarming: false,
       });
+      // Publish initial state immediately so the SK path exists from ARM time
+      if (present) {
+        this.emit('present', member);
+      }
     }
 
     this.checkInterval = setInterval(() => this.check(), 1000);

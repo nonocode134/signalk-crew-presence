@@ -67,6 +67,10 @@ module.exports = function plugin(app: SignalKApp) {
 
       scanner.on('device', (d) => monitor!.onDevice(d));
 
+      monitor.on('present', (member) => {
+        notifier!.setPresence(member.name, 'normal', `${member.name} est à bord`);
+      });
+
       monitor.on('alarm', (member) => {
         app.debug(`Alarme : ${member.name} introuvable`);
         notifier!.setPresence(
