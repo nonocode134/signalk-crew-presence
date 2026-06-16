@@ -1,4 +1,3 @@
-import path from 'path';
 import { Router, Request, Response, NextFunction } from 'express';
 import { PluginConfig } from './types';
 import { PresenceMonitor } from './presence-monitor';
@@ -13,11 +12,9 @@ export function createRouter(
   saveConfig: (config: PluginConfig, callback: (err: Error | null) => void) => void,
 ): Router {
   const router = express.Router();
-  const publicDir = path.join(__dirname, '..', 'public');
 
-  router.get('/', (_req: Request, res: Response) => {
-    res.sendFile(path.join(publicDir, 'index.html'));
-  });
+  // The UI is served by Signal K's webapp mechanism (signalk-webapp: "public" in package.json)
+  // at /@signalk-crew-presence/. Only API routes are registered here.
 
   router.get('/api/status', (_req: Request, res: Response) => {
     res.json({

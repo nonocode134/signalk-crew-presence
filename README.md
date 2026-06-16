@@ -40,10 +40,10 @@ Dans l'admin Signal K : **Server → Plugin Config → Crew Presence Monitor** �
 
 ## Utilisation
 
-Ouvrir l'interface web depuis Signal K Admin → **Appserver → signalk-crew-presence**, ou directement :
+Ouvrir l'interface web depuis Signal K Admin → **Webapps → Crew Presence**, ou directement :
 
 ```
-http://<ip-du-pi>:3000/plugins/signalk-crew-presence/
+http://<ip-du-pi>:3000/@signalk-crew-presence/
 ```
 
 1. Les devices BLE détectés apparaissent dans le tableau "Devices BLE détectés"

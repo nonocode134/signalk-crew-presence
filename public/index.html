@@ -443,6 +443,8 @@
 </main>
 
 <script>
+  const API = '/plugins/signalk-crew-presence';
+
   let currentConfig = { alarmTimeoutSeconds: 30, crewMembers: [] };
   let currentDevices = [];
   let settingsLoaded = false;
@@ -566,7 +568,7 @@
 
   async function refresh() {
     try {
-      const r = await fetch('api/status');
+      const r = await fetch(`${API}/api/status`);
       if (!r.ok) return;
       const data = await r.json();
       renderCrewGrid(data.presenceState, data.armed);
@@ -628,7 +630,7 @@
     event.preventDefault();
     const config = collectConfig();
     try {
-      const r = await fetch('api/config', {
+      const r = await fetch(`${API}/api/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),
@@ -648,18 +650,18 @@
   async function arm() {
     // Save current settings first so arm uses latest crew list
     const config = collectConfig();
-    await fetch('api/config', {
+    await fetch(`${API}/api/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config),
     });
-    const r = await fetch('api/arm', { method: 'POST' });
+    const r = await fetch(`${API}/api/arm`, { method: 'POST' });
     if (!r.ok) { const d = await r.json(); alert(d.error || 'Erreur'); return; }
     await refresh();
   }
 
   async function disarm() {
-    await fetch('api/disarm', { method: 'POST' });
+    await fetch(`${API}/api/disarm`, { method: 'POST' });
     await refresh();
   }
 
@@ -679,7 +681,7 @@
         config.crewMembers.push({ name: crewName, macAddress: mac });
       }
     }
-    await fetch('api/config', {
+    await fetch(`${API}/api/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config),
@@ -700,7 +702,7 @@
         m.name === newCrewName ? { ...m, macAddress: mac } : m
       );
     }
-    await fetch('api/config', {
+    await fetch(`${API}/api/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config),

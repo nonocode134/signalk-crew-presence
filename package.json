@@ -23,6 +23,7 @@
     "express": ">=4.0.0"
   },
   "signalk-plugin-enabled-by-default": false,
+  "signalk-webapp": "public",
   "engines": {
     "node": ">=18.0.0"
   }
