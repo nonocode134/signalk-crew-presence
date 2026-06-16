@@ -1,0 +1,29 @@
+{
+  "name": "signalk-crew-presence",
+  "version": "1.0.0",
+  "description": "BLE-based crew presence monitoring for Signal K",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "signalk-node-server-plugin"
+  ],
+  "author": "nonocode134",
+  "license": "MIT",
+  "dependencies": {
+    "@abandonware/noble": "^1.9.2-15",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.9.3",
+    "typescript": "^5.4.5"
+  },
+  "peerDependencies": {
+    "express": ">=4.0.0"
+  },
+  "signalk-plugin-enabled-by-default": false,
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
