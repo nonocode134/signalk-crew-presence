@@ -446,8 +446,8 @@
   const API = '/plugins/signalk-crew-presence';
 
   let currentConfig = { alarmTimeoutSeconds: 30, crewMembers: [] };
-  let currentDevices = [];
   let settingsLoaded = false;
+  let deviceRenderPending = true; // render devices on first fetch, then every 8s
 
   function ago(ts) {
     const s = Math.floor((Date.now() - ts) / 1000);
@@ -474,79 +474,141 @@
     }
 
     count.textContent = presenceState.length;
-    grid.innerHTML = presenceState.map(entry => {
+
+    // Remove placeholder if present
+    const placeholder = grid.querySelector('.empty-msg');
+    if (placeholder) placeholder.remove();
+
+    // Index existing cards
+    const existing = new Map();
+    for (const card of grid.querySelectorAll('.crew-card[data-mac]')) {
+      existing.set(card.dataset.mac, card);
+    }
+
+    // Remove cards no longer in presenceState
+    const activeMacs = new Set(presenceState.map(e => e.member.macAddress));
+    for (const [mac, card] of existing) {
+      if (!activeMacs.has(mac)) { card.remove(); existing.delete(mac); }
+    }
+
+    for (const entry of presenceState) {
+      const mac = entry.member.macAddress;
       let cardClass = 'unknown', dotClass = 'unknown', statusText = 'Non armé';
       if (armed) {
-        if (entry.alarming) {
-          cardClass = 'alarming'; dotClass = 'alarm'; statusText = 'ALARME';
-        } else if (entry.present) {
-          cardClass = 'present'; dotClass = 'ok'; statusText = 'À bord';
-        } else {
-          cardClass = 'unknown'; dotClass = 'unknown'; statusText = 'En attente…';
-        }
+        if (entry.alarming)      { cardClass = 'alarming'; dotClass = 'alarm'; statusText = 'ALARME'; }
+        else if (entry.present)  { cardClass = 'present';  dotClass = 'ok';    statusText = 'À bord'; }
+        else                     {                                               statusText = 'En attente…'; }
       }
-      const seenText = entry.lastSeen
-        ? `Vu il y a ${ago(entry.lastSeen)}`
-        : 'Jamais détecté';
+      const seenText = entry.lastSeen ? `Vu il y a ${ago(entry.lastSeen)}` : 'Jamais détecté';
 
-      return `<div class="crew-card ${cardClass}">
-        <div class="crew-name">${esc(entry.member.name)}</div>
-        <div class="crew-mac">${esc(entry.member.macAddress)}</div>
-        <div>
-          <span class="crew-status-dot ${dotClass}"></span>
-          <span style="font-size:.82rem">${statusText}</span>
-        </div>
-        <div class="crew-seen">${seenText}</div>
-      </div>`;
-    }).join('');
+      let card = existing.get(mac);
+      if (!card) {
+        card = document.createElement('div');
+        card.dataset.mac = mac;
+        card.innerHTML = `
+          <div class="crew-name">${esc(entry.member.name)}</div>
+          <div class="crew-mac">${esc(mac)}</div>
+          <div><span class="crew-status-dot"></span><span class="crew-status-text" style="font-size:.82rem"></span></div>
+          <div class="crew-seen"></div>`;
+        grid.appendChild(card);
+      }
+
+      // Update class only if changed (preserves CSS animation state)
+      const newClass = `crew-card ${cardClass}`;
+      if (card.className !== newClass) card.className = newClass;
+      card.querySelector('.crew-status-dot').className = `crew-status-dot ${dotClass}`;
+      card.querySelector('.crew-status-text').textContent = statusText;
+      card.querySelector('.crew-seen').textContent = seenText;
+    }
+  }
+
+  function rssiHTML(rssi) {
+    return `<div class="rssi-bar">
+      <div class="signal-bars ${signalClass(rssi)}"><span></span><span></span><span></span><span></span></div>
+      <span class="rssi-val">${rssi} dBm</span>
+    </div>`;
+  }
+
+  function assignCtrlHTML(d, crewMembers, isAssigned) {
+    const options = crewMembers.map(m =>
+      `<option value="${esc(m.name)}" ${m.macAddress.toLowerCase() === d.mac ? 'selected' : ''}>${esc(m.name)}</option>`
+    ).join('');
+    return isAssigned
+      ? `<select class="assign-select" onchange="reassign('${esc(d.mac)}', this.value)">
+           ${options}<option value="">— Désassigner</option>
+         </select>`
+      : `<select class="assign-select" onchange="assignDevice('${esc(d.mac)}','${esc(d.name||'')}',this.value)">
+           <option value="">Assigner à…</option>
+           ${crewMembers.map(m => `<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('')}
+           <option value="__new__">+ Nouveau membre</option>
+         </select>`;
   }
 
   function renderDevices(devices, crewMembers) {
     const tbody = document.getElementById('devices-body');
     const count = document.getElementById('devices-count');
-    currentDevices = devices;
 
-    count.textContent = devices.length;
+    // Stable sort: alphabetical by MAC — rows never reorder between refreshes
+    const sorted = [...devices].sort((a, b) => a.mac.localeCompare(b.mac));
+    count.textContent = sorted.length;
 
-    if (devices.length === 0) {
+    if (sorted.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">Aucun device BLE détecté</td></tr>';
       return;
     }
 
+    // Remove placeholder if present
+    const placeholder = tbody.querySelector('td[colspan]');
+    if (placeholder) placeholder.closest('tr').remove();
+
     const assignedMacs = new Set(crewMembers.map(m => m.macAddress.toLowerCase()));
 
-    tbody.innerHTML = devices.map(d => {
+    // Index existing rows
+    const existing = new Map();
+    for (const tr of tbody.querySelectorAll('tr[data-mac]')) {
+      existing.set(tr.dataset.mac, tr);
+    }
+
+    // Remove rows no longer in list
+    const activeMacs = new Set(sorted.map(d => d.mac));
+    for (const [mac, tr] of existing) {
+      if (!activeMacs.has(mac)) { tr.remove(); existing.delete(mac); }
+    }
+
+    // Update or create rows
+    for (const d of sorted) {
       const isAssigned = assignedMacs.has(d.mac);
-      const options = crewMembers.map(m =>
-        `<option value="${esc(m.name)}" ${m.macAddress.toLowerCase() === d.mac ? 'selected' : ''}>${esc(m.name)}</option>`
-      ).join('');
+      let tr = existing.get(d.mac);
 
-      const assignCtrl = isAssigned
-        ? `<select class="assign-select" onchange="reassign('${esc(d.mac)}', this.value)">
-            ${options}
-            <option value="">— Désassigner</option>
-           </select>`
-        : `<select class="assign-select" onchange="assignDevice('${esc(d.mac)}', '${esc(d.name || '')}', this.value)">
-            <option value="">Assigner à…</option>
-            ${crewMembers.map(m => `<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('')}
-            <option value="__new__">+ Nouveau membre</option>
-           </select>`;
+      if (!tr) {
+        tr = document.createElement('tr');
+        tr.dataset.mac = d.mac;
+        tr.dataset.assigned = '';
+        tr.innerHTML = `
+          <td class="mac">${esc(d.mac)}</td>
+          <td>${esc(d.name || '—')}</td>
+          <td>${rssiHTML(d.rssi)}</td>
+          <td>${ago(d.lastSeen)}</td>
+          <td class="assign-wrap">${assignCtrlHTML(d, crewMembers, isAssigned)}</td>`;
+        tbody.appendChild(tr);
+        tr.dataset.assigned = String(isAssigned);
+      } else {
+        // Partial update: only touch cells that change
+        const nameVal = d.name || '—';
+        if (tr.cells[1].textContent !== nameVal) tr.cells[1].textContent = nameVal;
+        tr.cells[2].innerHTML = rssiHTML(d.rssi);
+        tr.cells[3].textContent = ago(d.lastSeen);
+        if (tr.dataset.assigned !== String(isAssigned)) {
+          tr.cells[4].innerHTML = assignCtrlHTML(d, crewMembers, isAssigned);
+          tr.dataset.assigned = String(isAssigned);
+        }
+      }
+    }
 
-      return `<tr>
-        <td class="mac">${esc(d.mac)}</td>
-        <td>${esc(d.name || '—')}</td>
-        <td>
-          <div class="rssi-bar">
-            <div class="signal-bars ${signalClass(d.rssi)}">
-              <span></span><span></span><span></span><span></span>
-            </div>
-            <span class="rssi-val">${d.rssi} dBm</span>
-          </div>
-        </td>
-        <td>${ago(d.lastSeen)}</td>
-        <td class="assign-wrap">${assignCtrl}</td>
-      </tr>`;
-    }).join('');
+    // Reorder DOM to match stable MAC sort (appendChild moves existing nodes)
+    const rowMap = new Map();
+    for (const tr of tbody.querySelectorAll('tr[data-mac]')) rowMap.set(tr.dataset.mac, tr);
+    for (const d of sorted) tbody.appendChild(rowMap.get(d.mac));
   }
 
   function updateStatusBadge(armed, presenceState) {
@@ -571,8 +633,9 @@
       const r = await fetch(`${API}/api/status`);
       if (!r.ok) return;
       const data = await r.json();
+
+      // Crew cards: always, every 2s
       renderCrewGrid(data.presenceState, data.armed);
-      renderDevices(data.detectedDevices, data.config.crewMembers);
       updateStatusBadge(data.armed, data.presenceState);
 
       if (!settingsLoaded) {
@@ -580,6 +643,13 @@
         settingsLoaded = true;
       }
       currentConfig = data.config;
+
+      // Devices table: only when due (initially + every 8s)
+      if (deviceRenderPending) {
+        renderDevices(data.detectedDevices, data.config.crewMembers);
+        deviceRenderPending = false;
+        setTimeout(() => { deviceRenderPending = true; }, 8000);
+      }
     } catch (_) {}
   }
 
