@@ -71,6 +71,13 @@ module.exports = function plugin(app: SignalKApp) {
         notifier!.setPresence(member.name, 'normal', `${member.name} est à bord`);
       });
 
+      monitor.on('disarmed', (members) => {
+        for (const member of members) {
+          notifier!.clearPresence(member.name);
+        }
+        app.setPluginStatus('En écoute BLE — désarmé');
+      });
+
       monitor.on('alarm', (member) => {
         app.debug(`Alarme : ${member.name} introuvable`);
         notifier!.setPresence(

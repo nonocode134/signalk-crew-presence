@@ -26,6 +26,21 @@ export class Notifier {
     });
   }
 
+  clearPresence(memberName: string): void {
+    const slug = memberName.replace(/[^a-zA-Z0-9_]/g, '_');
+    this.app.handleMessage(this.pluginId, {
+      context: 'vessels.self',
+      updates: [{
+        source: { label: this.pluginId },
+        timestamp: new Date().toISOString(),
+        values: [{
+          path: `notifications.crewPresence.${slug}`,
+          value: null,
+        }],
+      }],
+    });
+  }
+
   startHeartbeat(): void {
     this.heartbeatInterval = setInterval(() => {
       this.app.handleMessage(this.pluginId, {

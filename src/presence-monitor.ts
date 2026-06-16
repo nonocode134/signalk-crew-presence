@@ -69,13 +69,9 @@ export class PresenceMonitor extends EventEmitter {
       clearInterval(this.checkInterval);
       this.checkInterval = null;
     }
-    // Clear any active alarms
-    for (const entry of this.presenceState.values()) {
-      if (entry.alarming) {
-        entry.alarming = false;
-        this.emit('clear', entry.member);
-      }
-    }
+    // Notify all watched members before clearing state
+    const members = Array.from(this.presenceState.values()).map(e => e.member);
+    this.emit('disarmed', members);
     this.presenceState.clear();
     this.config = null;
   }
