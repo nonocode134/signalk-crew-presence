@@ -9,8 +9,13 @@
     "dev": "tsc --watch"
   },
   "keywords": [
-    "signalk-node-server-plugin"
+    "signalk-node-server-plugin",
+    "signalk-webapp"
   ],
+  "signalk": {
+    "appIcon": "./public/icon.png",
+    "displayName": "Crew Presence"
+  },
   "author": "nonocode134",
   "license": "MIT",
   "dependencies": {
@@ -23,7 +28,6 @@
     "express": ">=4.0.0"
   },
   "signalk-plugin-enabled-by-default": false,
-  "signalk-webapp": "public",
   "engines": {
     "node": ">=18.0.0"
   }

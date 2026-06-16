@@ -46,6 +46,12 @@ Ouvrir l'interface web depuis Signal K Admin → **Webapps → Crew Presence**, 
 http://<ip-du-pi>:3000/@signalk-crew-presence/
 ```
 
+Accès alternatif via le menu Plugins :
+
+```
+http://<ip-du-pi>:3000/plugins/signalk-crew-presence/
+```
+
 1. Les devices BLE détectés apparaissent dans le tableau "Devices BLE détectés"
 2. Cliquer "Assigner à…" pour lier un device à un membre d'équipage
 3. Régler le délai d'alarme dans Réglages (défaut : 30 secondes)
