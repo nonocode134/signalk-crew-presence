@@ -67,17 +67,6 @@ module.exports = function plugin(app: SignalKApp) {
 
       scanner.on('device', (d) => monitor!.onDevice(d));
 
-      monitor.on('present', (member) => {
-        notifier!.setPresence(member.name, 'normal', `${member.name} est à bord`);
-      });
-
-      monitor.on('disarmed', (members) => {
-        for (const member of members) {
-          notifier!.clearPresence(member.name);
-        }
-        app.setPluginStatus('En écoute BLE — désarmé');
-      });
-
       monitor.on('alarm', (member) => {
         app.debug(`Alarme : ${member.name} introuvable`);
         notifier!.setPresence(
@@ -88,10 +77,18 @@ module.exports = function plugin(app: SignalKApp) {
         app.setPluginStatus(`ALARME — ${member.name} introuvable`);
       });
 
+      // On clear or disarm: null supprime le chemin dans SK (pas d'état "normal" résiduel)
       monitor.on('clear', (member) => {
         app.debug(`Retour : ${member.name} détecté`);
-        notifier!.setPresence(member.name, 'normal', `${member.name} est à bord`);
+        notifier!.clearPresence(member.name);
         app.setPluginStatus('Armé — équipage présent');
+      });
+
+      monitor.on('disarmed', (members) => {
+        for (const member of members) {
+          notifier!.clearPresence(member.name);
+        }
+        app.setPluginStatus('En écoute BLE — désarmé');
       });
 
       scanner.start();

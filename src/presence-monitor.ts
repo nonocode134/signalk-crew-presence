@@ -54,10 +54,6 @@ export class PresenceMonitor extends EventEmitter {
         lastSeen: device?.lastSeen ?? null,
         alarming: false,
       });
-      // Publish initial state immediately so the SK path exists from ARM time
-      if (present) {
-        this.emit('present', member);
-      }
     }
 
     this.checkInterval = setInterval(() => this.check(), 1000);
@@ -69,9 +65,11 @@ export class PresenceMonitor extends EventEmitter {
       clearInterval(this.checkInterval);
       this.checkInterval = null;
     }
-    // Notify all watched members before clearing state
-    const members = Array.from(this.presenceState.values()).map(e => e.member);
-    this.emit('disarmed', members);
+    // Only emit alarming members — non-alarming ones never had a SK path created
+    const alarmingMembers = Array.from(this.presenceState.values())
+      .filter(e => e.alarming)
+      .map(e => e.member);
+    this.emit('disarmed', alarmingMembers);
     this.presenceState.clear();
     this.config = null;
   }
