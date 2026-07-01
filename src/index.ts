@@ -67,6 +67,15 @@ module.exports = function plugin(app: SignalKApp) {
 
       scanner.on('device', (d) => monitor!.onDevice(d));
 
+      scanner.on('state', (state: string) => {
+        if (state === 'poweredOn') {
+          app.debug('BLE adaptateur actif, scan démarré');
+        } else {
+          app.debug(`BLE adaptateur non disponible (état: ${state})`);
+          app.setPluginStatus(`BLE non disponible — adaptateur ${state}`);
+        }
+      });
+
       monitor.on('alarm', (member) => {
         app.debug(`Alarme : ${member.name} introuvable`);
         notifier!.setPresence(

@@ -25,6 +25,7 @@ export class BleScanner extends EventEmitter {
   }
 
   private onStateChange = (state: string): void => {
+    this.emit('state', state);
     if (state === 'poweredOn') {
       noble.startScanning([], true);
       this.scanning = true;
