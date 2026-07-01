@@ -19,7 +19,25 @@ Plugin Signal K de surveillance de présence d'équipage via BLE passif pour voi
 sudo setcap cap_net_raw+eip $(which node)
 ```
 
-### 2. Installation du plugin
+### 2. Activation automatique de l'adaptateur Bluetooth au démarrage
+
+Sans cette étape, l'adaptateur Bluetooth n'est pas allumé au boot et le plugin ne détecte rien.
+
+```bash
+sudo nano /etc/bluetooth/main.conf
+```
+
+Ajouter ou modifier la ligne suivante dans la section `[Policy]` :
+
+```
+AutoEnable=true
+```
+
+```bash
+sudo systemctl restart bluetooth
+```
+
+### 3. Installation du plugin
 
 ```bash
 cd ~/.signalk
@@ -28,13 +46,13 @@ npm install github:nonocode134/signalk-crew-presence
 
 Le build TypeScript se lance automatiquement à l'installation via le script `prepare`.
 
-### 3. Redémarrage de Signal K
+### 4. Redémarrage de Signal K
 
 ```bash
 sudo systemctl restart signalk
 ```
 
-### 4. Activation
+### 5. Activation
 
 Dans l'admin Signal K : **Server → Plugin Config → Crew Presence Monitor** → activer.
 
@@ -43,13 +61,7 @@ Dans l'admin Signal K : **Server → Plugin Config → Crew Presence Monitor** �
 Ouvrir l'interface web depuis Signal K Admin → **Webapps → Crew Presence**, ou directement :
 
 ```
-http://<ip-du-pi>:3000/@signalk-crew-presence/
-```
-
-Accès alternatif via le menu Plugins :
-
-```
-http://<ip-du-pi>:3000/plugins/signalk-crew-presence/
+http://<ip-du-pi>:3000/signalk-crew-presence/
 ```
 
 1. Les devices BLE détectés apparaissent dans le tableau "Devices BLE détectés"
